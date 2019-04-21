@@ -68,6 +68,9 @@ public class main {
 				filewriter.write("hamming_distance："+dis+"  ");
 				for(int i=0;i<genBin.length-15;i++) {
 					System.out.print(genBin[i]);
+					if(i==1 || i==12 || i==13 || i==19) {
+						filewriter.write(" ");
+					}
 					filewriter.write(String.valueOf(genBin[i]));
 				}
 				System.out.println();
