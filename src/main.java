@@ -3,7 +3,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -25,7 +27,11 @@ public class main {
 			}
 
 			if(str.equals("1")) {
-				genCRC(bin);
+				System.out.println("CRCコード:");
+				for(int i : genCRC(bin)) {
+					System.out.print(i);
+				}
+				System.out.println();
 			}else if(str.equals("2")) {
 				checkCRC(bin);
 			}else if(str.equals("3")) {
@@ -37,16 +43,24 @@ public class main {
 	private static void hammingDistance(int[] bin) throws IOException {
 		int dis=0;
 		String line;
-		int[] genBin = new int[bin.length+15];
+		int[] synth = new int[bin.length+15];
+		int[] genBin;
+		int[] CRC = genCRC(bin);
+		int[] stuffedBin;
 		File file = new File("binList.txt");
 		FileReader filereader = new FileReader(file);
 		BufferedReader in = new BufferedReader(filereader);
 		file = new File("lessHamming.txt");
 		FileWriter filewriter = new FileWriter(file);
 
-		filewriter.write("入力ビット列：");
-		for(int m : bin) {
-			filewriter.write(String.valueOf(m));
+		System.arraycopy(bin,0,synth,0,bin.length);
+		System.arraycopy(CRC,0,synth,bin.length,CRC.length);
+		stuffedBin=bitStuffing(synth);
+		genBin = new int[stuffedBin.length];
+
+		filewriter.write("入力ビット列：       ");
+		for(int n : stuffedBin) {
+			filewriter.write(String.valueOf(n));
 		}
 		filewriter.write("\n\n");
 
@@ -54,45 +68,69 @@ public class main {
 			in.readLine();
 		}
 		while((line=in.readLine()) != null) {
-			dis=0;
-			for(int i=0;i<genBin.length;i++) {
-				genBin[i]=Character.getNumericValue(line.charAt(i));
-			}
-			for(int i=0;i<bin.length;i++) {
-				if(genBin[i]!=bin[i]) {
-					dis++;
+			if(genBin.length==line.length()) {
+				dis=0;
+				for(int i=0;i<genBin.length;i++) {
+					genBin[i]=Character.getNumericValue(line.charAt(i));
 				}
-			}
-			if(dis<8) {
-				System.out.print("hamming_distance："+dis+"  ");
-				filewriter.write("hamming_distance："+dis+"  ");
-				for(int i=0;i<genBin.length-15;i++) {
-					System.out.print(genBin[i]);
-					if(i==1 || i==12 || i==13 || i==19) {
-						filewriter.write(" ");
+				for(int i=0;i<genBin.length;i++) {
+					if(genBin[i]!=stuffedBin[i]) {
+						dis++;
 					}
-					filewriter.write(String.valueOf(genBin[i]));
 				}
-				System.out.println();
-				filewriter.write("\n");
+				if(dis<8) {
+					System.out.print("hamming_distance："+dis+"  ");
+					filewriter.write("hamming_distance："+dis+"  ");
+					for(int i=0;i<genBin.length;i++) {
+						System.out.print(genBin[i]);
+						/*if(i==1 || i==12 || i==13 || i==19) {
+							filewriter.write(" ");
+						}*/
+						filewriter.write(String.valueOf(genBin[i]));
+					}
+					System.out.println();
+					filewriter.write("\n");
+				}
 			}
 		}
 		filewriter.close();
+	}
 
+	private static int[] bitStuffing(int[] bin) {
+		int counter=0;
+		int[] out;
+		List<Integer> result = new ArrayList<Integer>();
+
+		result.add(bin[0]);
+		for(int i=1;i<bin.length;i++) {
+			if(counter==4) {
+				counter=0;
+				result.add(bin[i-1]^1);
+			}else if(bin[i]==bin[i-1]) {
+				counter++;
+			}else {
+				counter=0;
+			}
+			result.add(bin[i]);
+		}
+
+		out=new int[result.size()];
+		for(int i=0;i<result.size();i++) {
+			out[i]=result.get(i);
+		}
+
+		return out;
 	}
 
 	private static void detectBin(int[] bin) throws IOException {
 		int[] CRC = genCRC(bin);
-		int[] genBin = new int[bin.length+15];
-		int[] sBin = new int[bin.length];
-		int n=0;
+		int[] inputBin = new int[bin.length];	//逆回路に入力するビット列
 		int pattern=0;
 		Random rnd = new Random();
 		File file = new File("binList.txt");
 		FileWriter filewriter = new FileWriter(file);
 
-		Arrays.fill(sBin, 0);
-
+		//		File Header
 		filewriter.write("入力ビット列：");
 		for(int m : bin) {
 			filewriter.write(String.valueOf(m));
@@ -103,68 +141,67 @@ public class main {
 		}
 		filewriter.write("\n\n");
 
-		pattern=(int) Math.pow(2, bin.length-15);
-//		pattern=100;
-
-		for(int j=0;j<pattern;j++) {
-			Arrays.fill(genBin, 0);
-
-			System.out.print("入力ビット列：");
-			for(int m : sBin) {
-				System.out.print(m);
+		//		generate bit strings
+		/*
+				入力bit長の前後＋－２の長さのbit列生成
+		 */
+		for(int i=0;i<5;i++) {
+			for(int[] n : genBin(CRC, (bin.length-2+i))) {
+				for(int m : bitStuffing(n)) {
+					filewriter.write(String.valueOf(m));
+				}
+				filewriter.write("\n");
 			}
-			System.out.print("  ");
+		}
+		filewriter.close();
 
-			for(int i=0;i<genBin.length-15;i++) {
+		hammingDistance(bin);
+	}
 
-				if(i<15) {
-					if(genBin[14]==CRC[14-i]) {
+	//	CRCに対応したビット列生成
+	private static int[][] genBin(int[] CRC, int binLength) {
+		int pattern=(int) Math.pow(2, binLength-15);
+		int[][] genBin = new int[pattern][binLength+15];
+		int[] inputBin = new int[binLength];
+		int n = 0;
+
+		Arrays.fill(inputBin, 0);
+
+		for(int i=0;i<pattern;i++) {
+			Arrays.fill(genBin[i], 0);
+			for(int j=0;j<binLength;j++) {
+
+				if(j<15) {
+					if(genBin[i][14]==CRC[14-j]) {	//最初の15bitはCRC
 						n=0;
 					}else {
 						n=1;
 					}
 				}else {
-					if(sBin[i]==0) {
-//					if(rnd.nextBoolean()) {
+					if(inputBin[j]==0) {
 						n=0;
 					}else {
 						n=1;
 					}
 				}
 
-				genBin[0]=genBin[0]^n;
-				genBin[4]=genBin[4]^n;
-				genBin[6]=genBin[6]^n;
-				genBin[7]=genBin[7]^n;
-				genBin[10]=genBin[10]^n;
-				genBin[11]=genBin[11]^n;
-				genBin[14]=genBin[14]^n;
+				genBin[i][0]=genBin[i][0]^n;
+				genBin[i][4]=genBin[i][4]^n;
+				genBin[i][6]=genBin[i][6]^n;
+				genBin[i][7]=genBin[i][7]^n;
+				genBin[i][10]=genBin[i][10]^n;
+				genBin[i][11]=genBin[i][11]^n;
+				genBin[i][14]=genBin[i][14]^n;
 
-				for(int m=0;m<15+i;m++) {
-					genBin[15+i-m]=genBin[14+i-m];
+				for(int m=0;m<15+j;m++) {
+					genBin[i][15+j-m]=genBin[i][14+j-m];
 				}
-				genBin[0]=n;
-
-				//			for(int m : genBin) {
-				//				System.out.print(m);
-				//			}
-				//			System.out.println();
+				genBin[i][0]=n;
 			}
-
-			System.out.print("計算結果:");
-			for(int m : genBin) {
-				System.out.print(m);
-//				filewriter.write(m);
-				filewriter.write(String.valueOf(m));
-			}
-			System.out.println();
-			filewriter.write("\n");
-
-			sBin=incBin(sBin);
+			inputBin=incBin(inputBin);
 		}
-		filewriter.close();
 
-		hammingDistance(bin);
+		return genBin;
 	}
 
 	private static int[] incBin(int[] bin) {
@@ -176,8 +213,8 @@ public class main {
 				bin[bin.length-1]=bin[bin.length-1]^1;
 			}else {
 				if(inc) {
-				inc = bin[bin.length-1-i]==1 ? true:false;
-				bin[bin.length-1-i]=bin[bin.length-1-i]^1;
+					inc = bin[bin.length-1-i]==1 ? true:false;
+					bin[bin.length-1-i]=bin[bin.length-1-i]^1;
 				}else {
 					inc = false;
 				}
@@ -251,11 +288,6 @@ public class main {
 			for(int j=0;j<bin.length-i-1;j++) {
 				bin[j]=bin[j+1];
 			}
-
-			//			for(int n : bin) {
-			//				System.out.print(n);
-			//			}
-			//			System.out.println();
 		}
 		System.out.print("誤り検出コード:");
 		for(int i=0;i<15;i++) {
