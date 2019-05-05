@@ -25,23 +25,29 @@ public class main {
 			if(!(str.equals("4"))) {
 				bin = getBin();
 			}
-
-			if(str.equals("1")) {
+			switch (str) {
+			case "1":
 				System.out.println("CRCコード:");
 				for(int i : genCRC(bin)) {
 					System.out.print(i);
 				}
 				System.out.println();
-			}else if(str.equals("2")) {
+				break;
+			case "2":
 				checkCRC(bin);
-			}else if(str.equals("3")) {
+				break;
+			case "3":
 				detectBin(bin);
+				break;
+
+			default:
+				break;
 			}
 		}while(!(str.equals("4")));
 	}
 
 	private static void hammingDistance(int[] bin) throws IOException {
-		int dis=0;
+		int dis=0,row=0,pattern=0;
 		String line;
 		int[] synth = new int[bin.length+15];
 		int[] genBin;
@@ -52,6 +58,10 @@ public class main {
 		BufferedReader in = new BufferedReader(filereader);
 		file = new File("lessHamming.txt");
 		FileWriter filewriter = new FileWriter(file);
+		
+		for(int i=0;i<5;i++) {
+			pattern += (int) Math.pow(2, bin.length-2+i);
+		}
 
 		System.arraycopy(bin,0,synth,0,bin.length);
 		System.arraycopy(CRC,0,synth,bin.length,CRC.length);
@@ -63,6 +73,8 @@ public class main {
 			filewriter.write(String.valueOf(n));
 		}
 		filewriter.write("\n\n");
+		
+		System.out.println("\nハミング距離の計算\n");
 
 		for(int i=0;i<3;i++) {
 			in.readLine();
@@ -92,6 +104,9 @@ public class main {
 					filewriter.write("\n");
 				}
 			}
+//			if(++row%1000000==0) {
+//				System.out.print((int)((float)row/(float)pattern*100)+"%");
+//			}
 		}
 		filewriter.close();
 	}
@@ -126,6 +141,8 @@ public class main {
 		int[] CRC = genCRC(bin);
 		int[] inputBin = new int[bin.length];	//逆回路に入力するビット列
 		int pattern=0;
+		String mode;
+		Scanner scan = new Scanner(System.in);
 		Random rnd = new Random();
 		File file = new File("binList.txt");
 		FileWriter filewriter = new FileWriter(file);
@@ -145,21 +162,78 @@ public class main {
 		/*
 				入力bit長の前後＋－２の長さのbit列生成
 		 */
+		System.out.println("\n1:CRCから逆算 2:全てのビット列を生成");
+		mode=scan.nextLine();
+
 		for(int i=0;i<5;i++) {
-			for(int[] n : genBin(CRC, (bin.length-2+i))) {
-				for(int m : bitStuffing(n)) {
-					filewriter.write(String.valueOf(m));
+			switch (mode) {
+			case "1":
+				for(int[] n : inversionBin(CRC, (bin.length-2+i))) {
+					for(int m : bitStuffing(n)) {
+						filewriter.write(String.valueOf(m));
+					}
+					filewriter.write("\n");
 				}
-				filewriter.write("\n");
+				break;
+			case "2":
+				genAllBin(filewriter, bin.length-2+i);
+				break;
+			default:
+				break;
 			}
+
 		}
 		filewriter.close();
 
 		hammingDistance(bin);
 	}
 
+	private static void genAllBin(FileWriter filewriter, int binLength) throws IOException{
+		int pattern=(int) Math.pow(2, binLength);
+		int[] genBin = new int[binLength+15];
+		int[] inputBin = new int[binLength];
+		int n = 0;
+		
+		System.out.println(binLength+"ビットのビット列生成");
+		Arrays.fill(inputBin, 0);
+
+		for(int i=0;i<pattern;i++) {
+			Arrays.fill(genBin, 0);
+			for(int j=0;j<binLength;j++) {
+				if(inputBin[j]==0) {
+					n=0;
+				}else {
+					n=1;
+				}
+
+				genBin[0]=genBin[0]^n;
+				genBin[4]=genBin[4]^n;
+				genBin[6]=genBin[6]^n;
+				genBin[7]=genBin[7]^n;
+				genBin[10]=genBin[10]^n;
+				genBin[11]=genBin[11]^n;
+				genBin[14]=genBin[14]^n;
+
+				for(int m=0;m<15+j;m++) {
+					genBin[15+j-m]=genBin[14+j-m];
+				}
+				genBin[0]=n;
+			}
+			for(int m : bitStuffing(genBin)) {
+				filewriter.write(String.valueOf(m));
+			}
+			filewriter.write("\n");
+			
+			inputBin=incBin(inputBin);
+			
+//			if(i%1000000==0) {
+//				System.out.println((int)((float)i/(float)pattern*100)+"%");
+//			}
+		}
+	}
+
 	//	CRCに対応したビット列生成
-	private static int[][] genBin(int[] CRC, int binLength) {
+	private static int[][] inversionBin(int[] CRC, int binLength) {
 		int pattern=(int) Math.pow(2, binLength-15);
 		int[][] genBin = new int[pattern][binLength+15];
 		int[] inputBin = new int[binLength];
