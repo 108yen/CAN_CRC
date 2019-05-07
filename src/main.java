@@ -9,7 +9,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
-//ID:0x19A	000110011010000000100000001
+//ID:0x19A		000110011010000000100000001
+//ID:0x077 01	000001110111000000100000001
+//ID:0x01A		00000001101000000100000000000000000
 
 public class main {
 
@@ -58,7 +60,7 @@ public class main {
 		BufferedReader in = new BufferedReader(filereader);
 		file = new File("lessHamming.txt");
 		FileWriter filewriter = new FileWriter(file);
-		
+
 		for(int i=0;i<5;i++) {
 			pattern += (int) Math.pow(2, bin.length-2+i);
 		}
@@ -73,7 +75,7 @@ public class main {
 			filewriter.write(String.valueOf(n));
 		}
 		filewriter.write("\n\n");
-		
+
 		System.out.println("\nハミング距離の計算\n");
 
 		for(int i=0;i<3;i++) {
@@ -109,6 +111,7 @@ public class main {
 //			}
 		}
 		filewriter.close();
+		filereader.close();
 	}
 
 	private static int[] bitStuffing(int[] bin) {
@@ -193,7 +196,7 @@ public class main {
 		int[] genBin = new int[binLength+15];
 		int[] inputBin = new int[binLength];
 		int n = 0;
-		
+
 		System.out.println(binLength+"ビットのビット列生成");
 		Arrays.fill(inputBin, 0);
 
@@ -223,9 +226,9 @@ public class main {
 				filewriter.write(String.valueOf(m));
 			}
 			filewriter.write("\n");
-			
+
 			inputBin=incBin(inputBin);
-			
+
 //			if(i%1000000==0) {
 //				System.out.println((int)((float)i/(float)pattern*100)+"%");
 //			}
