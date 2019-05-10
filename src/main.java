@@ -218,6 +218,7 @@ public class main {
 		int[] stuffedOrgBin = bitStuffing(orgBin);
 		int genBinLength=orgBin.length-2;
 		int dis;
+		boolean print=true;
 
 		FileWriter filewriter = new FileWriter(new File("lessHamming.txt"));
 		filewriter.write("入力ビット列：       ");
@@ -231,13 +232,18 @@ public class main {
 			int[] genBin = new int[genBinLength];
 			int[] inputBin = new int[genBinLength-15];
 			int n = 0;
+			int progress;
 			Arrays.fill(inputBin, 0);
 
 			System.out.println(genBinLength+"ビットのビット列生成");
 
 			for(int j=0;j<pattern;j++) {
-				if((j*100/pattern)%10==0) {
-					System.out.println((j*100/pattern)+"%");
+				progress=(int) (((float)j/(float)pattern)*100);
+				if(progress%5==0 && print) {
+					System.out.println((int)(((float)j/(float)pattern)*100)+"%");
+					print=false;
+				}else if(progress%5!=0) {
+					print=true;
 				}
 				Arrays.fill(genBin, 0);
 				for(int l=0;l<genBinLength-15;l++) {
