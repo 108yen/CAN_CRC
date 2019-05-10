@@ -227,17 +227,20 @@ public class main {
 		filewriter.write("\n\n");
 
 		for(int i=0;i<5;i++) {
-			int pattern = (int)Math.pow(2, genBinLength);
-			int[] genBin = new int[genBinLength+15];
-			int[] inputBin = new int[genBinLength];
+			int pattern = (int)Math.pow(2, genBinLength-15);
+			int[] genBin = new int[genBinLength];
+			int[] inputBin = new int[genBinLength-15];
 			int n = 0;
 			Arrays.fill(inputBin, 0);
 
 			System.out.println(genBinLength+"ビットのビット列生成");
 
 			for(int j=0;j<pattern;j++) {
+				if((j*100/pattern)%10==0) {
+					System.out.println((j*100/pattern)+"%");
+				}
 				Arrays.fill(genBin, 0);
-				for(int l=0;l<genBinLength;l++) {
+				for(int l=0;l<genBinLength-15;l++) {
 					if(inputBin[l]==0) {
 						n=0;
 					}else {
@@ -258,8 +261,9 @@ public class main {
 					genBin[0]=n;
 				}
 				int[] stuffedGenBin = bitStuffing(genBin);
-				dis=calHammingDistance(orgBin, stuffedGenBin);
+				dis=calHammingDistance(stuffedOrgBin, stuffedGenBin);
 				if(dis != -1 && dis < 7) {
+					filewriter.write("hamming_distance："+dis+"  ");
 					for(int m : stuffedGenBin) {
 						filewriter.write(String.valueOf(m));
 					}
